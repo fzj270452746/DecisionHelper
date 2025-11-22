@@ -1,37 +1,82 @@
 import Foundation
 
+// Refactored implementation - different file access patterns
 class PersistenceCoordinator {
     static let quintessential = PersistenceCoordinator()
 
     private let archiveFilenameDesignation = "deliberations_archive.json"
+
+    // Refactored: Computed property with different directory access pattern
     private var archiveURL: URL {
-        let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        return documentDirectory.appendingPathComponent(archiveFilenameDesignation)
+        // New logic: Multi-step directory retrieval
+        let fileManager = FileManager.default
+        let directories = fileManager.urls(for: .documentDirectory, in: .userDomainMask)
+
+        guard let documentDirectory = directories.first else {
+            fatalError("Unable to access document directory")
+        }
+
+        let filePath = documentDirectory.appendingPathComponent(archiveFilenameDesignation)
+        return filePath
     }
 
     private init() {}
 
+    // Refactored: Using different encoding workflow
     func perpetuateDeliberations(_ deliberations: [Deliberation]) throws {
+        // New logic: Step-by-step encoding process
         let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        let transmutedData = try encoder.encode(deliberations)
-        try transmutedData.write(to: archiveURL, options: [.atomic])
+
+        // Configure encoder separately
+        let strategy = JSONEncoder.DateEncodingStrategy.iso8601
+        encoder.dateEncodingStrategy = strategy
+
+        // Encode data
+        let encodedBytes = try encoder.encode(deliberations)
+
+        // Write with explicit options
+        let writeOptions: Data.WritingOptions = [.atomic]
+        let targetURL = archiveURL
+
+        try encodedBytes.write(to: targetURL, options: writeOptions)
     }
 
+    // Refactored: Using manual existence check and different decoding pattern
     func recuperateDeliberations() throws -> [Deliberation] {
-        guard FileManager.default.fileExists(atPath: archiveURL.path) else {
-            return []
+        // New logic: Manual file existence verification
+        let fileManager = FileManager.default
+        let targetPath = archiveURL.path
+        let fileExists = fileManager.fileExists(atPath: targetPath)
+
+        guard fileExists else {
+            let emptyArray: [Deliberation] = []
+            return emptyArray
         }
 
-        let transmutedData = try Data(contentsOf: archiveURL)
+        // New logic: Step-by-step decoding
+        let fileURL = archiveURL
+        let rawBytes = try Data(contentsOf: fileURL)
+
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode([Deliberation].self, from: transmutedData)
+        let strategy = JSONDecoder.DateDecodingStrategy.iso8601
+        decoder.dateDecodingStrategy = strategy
+
+        let decodedItems = try decoder.decode([Deliberation].self, from: rawBytes)
+        return decodedItems
     }
 
+    // Refactored: Different deletion verification pattern
     func obliterateAllDeliberations() throws {
-        if FileManager.default.fileExists(atPath: archiveURL.path) {
-            try FileManager.default.removeItem(at: archiveURL)
+        // New logic: Explicit file manager usage
+        let fileManager = FileManager.default
+        let targetPath = archiveURL.path
+
+        // Check existence first
+        let doesExist = fileManager.fileExists(atPath: targetPath)
+
+        if doesExist {
+            let fileURL = archiveURL
+            try fileManager.removeItem(at: fileURL)
         }
     }
 }

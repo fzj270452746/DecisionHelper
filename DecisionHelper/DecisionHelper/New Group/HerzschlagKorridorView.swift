@@ -338,7 +338,7 @@ internal class HerzschlagKorridorView: UIView {
         
         // 结束动画
         UIView.animate(withDuration: 0.5) {
-            self.herzImageView.transform = erfolg ?
+            self.herzImageView.transform = erfolg ? 
                 CGAffineTransform(scaleX: 1.5, y: 1.5) :
                 CGAffineTransform(rotationAngle: .pi)
         }
@@ -372,7 +372,7 @@ internal class HerzschlagKorridorView: UIView {
         messageLabel.textAlignment = .center
         messageLabel.font = UIFont.systemFont(ofSize: 16)
         messageLabel.textColor = .label
-        messageLabel.text = erfolg ?
+        messageLabel.text = erfolg ? 
             "You maintained perfect rhythm!" :
             "Heart rate out of target range"
         
@@ -400,7 +400,7 @@ internal class HerzschlagKorridorView: UIView {
     @objc private func neustartButtonGedrueckt() {
         // 移除所有对话框
         for subview in subviews where subview is UIView && subview != hintergrundView {
-            if subview != herzImageView && subview != frequenzLabel &&
+            if subview != herzImageView && subview != frequenzLabel && 
                subview != zielFrequenzLabel && subview != statusLabel && subview != progressView {
                 subview.removeFromSuperview()
             }

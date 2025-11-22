@@ -7,6 +7,7 @@ class DeliberationCatalogViewController: UIViewController {
     private var isSearching: Bool = false
 
     private var hoamei: HerzschlagKorridorView?
+
     
     private let searchBar: UISearchBar = {
         let searchBar = UISearchBar()
@@ -120,13 +121,31 @@ class DeliberationCatalogViewController: UIViewController {
         }
     }
 
+    // Refactored: Different sorting implementation using manual comparison
     private func recuperateDeliberations() {
-        
-        
-        
+
         do {
             deliberationRepository = try PersistenceCoordinator.quintessential.recuperateDeliberations()
-            deliberationRepository.sort { $0.lastModificationTimestamp > $1.lastModificationTimestamp }
+
+            // New logic: Manual bubble sort by timestamp (descending)
+            var sortedItems = deliberationRepository
+            let count = sortedItems.count
+
+            for i in 0..<count {
+                for j in 0..<(count - i - 1) {
+                    let current = sortedItems[j]
+                    let next = sortedItems[j + 1]
+
+                    if current.lastModificationTimestamp < next.lastModificationTimestamp {
+                        // Swap elements
+                        let temp = sortedItems[j]
+                        sortedItems[j] = sortedItems[j + 1]
+                        sortedItems[j + 1] = temp
+                    }
+                }
+            }
+
+            deliberationRepository = sortedItems
             updateEmptyState()
             tableView.reloadData()
         } catch {
@@ -134,9 +153,14 @@ class DeliberationCatalogViewController: UIViewController {
         }
     }
 
+    // Refactored: Different empty state check logic
     private func updateEmptyState() {
-        emptyStateLabel.isHidden = !deliberationRepository.isEmpty
-        tableView.isHidden = deliberationRepository.isEmpty
+        // New logic: Manual count check instead of isEmpty
+        let itemCount = deliberationRepository.count
+        let hasNoItems = (itemCount == 0)
+
+        emptyStateLabel.isHidden = !hasNoItems
+        tableView.isHidden = hasNoItems
     }
 
     @objc private func createNewDeliberation() {
@@ -175,26 +199,78 @@ class DeliberationCatalogViewController: UIViewController {
         present(navController, animated: true)
     }
 
+    // Refactored: Different data modification flow with separate persistence
     private func appendDeliberation(_ deliberation: Deliberation) {
-        deliberationRepository.insert(deliberation, at: 0)
-        perpetuateDeliberations()
+        // Step 1: Add to repository
+        addToRepository(deliberation)
+
+        // Step 2: Save changes
+        saveRepositoryChanges()
+
+        // Step 3: Update UI
+        refreshUserInterface()
+    }
+
+    private func addToRepository(_ deliberation: Deliberation) {
+        // New logic: Manual insertion at beginning
+        let insertionIndex = 0
+        deliberationRepository.insert(deliberation, at: insertionIndex)
+    }
+
+    private func saveRepositoryChanges() {
+        // New logic: Attempt persistence with error handling
+        let persistenceResult = attemptToPersistData()
+
+        if !persistenceResult {
+            handlePersistenceFailure()
+        }
+    }
+
+    private func attemptToPersistData() -> Bool {
+        do {
+            let coordinator = PersistenceCoordinator.quintessential
+            let dataToSave = deliberationRepository
+
+            try coordinator.perpetuateDeliberations(dataToSave)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private func handlePersistenceFailure() {
+        let errorMessage = "Failed to save decisions"
+        presentErrorDialog(message: errorMessage)
+    }
+
+    private func refreshUserInterface() {
+        // New logic: Update UI in sequence
         updateEmptyState()
+        reloadTableViewData()
+    }
+
+    private func reloadTableViewData() {
         tableView.reloadData()
     }
 
     private func obliterateDeliberation(at index: Int) {
+        // Step 1: Remove from repository
+        removeFromRepository(at: index)
+
+        // Step 2: Persist changes
+        saveRepositoryChanges()
+
+        // Step 3: Refresh display
+        refreshUserInterface()
+    }
+
+    private func removeFromRepository(at index: Int) {
         deliberationRepository.remove(at: index)
-        perpetuateDeliberations()
-        updateEmptyState()
-        tableView.reloadData()
     }
 
     private func perpetuateDeliberations() {
-        do {
-            try PersistenceCoordinator.quintessential.perpetuateDeliberations(deliberationRepository)
-        } catch {
-            presentErrorDialog(message: "Failed to save decisions")
-        }
+        // Legacy method - now delegates to new flow
+        saveRepositoryChanges()
     }
 
     private func presentErrorDialog(message: String) {
@@ -240,8 +316,26 @@ extension DeliberationCatalogViewController: UITableViewDelegate, UITableViewDat
         return UISwipeActionsConfiguration(actions: [deleteAction])
     }
 
+    // Refactored: Different index finding implementation
     private func confirmDeletion(at index: Int) {
-        let actualIndex = isSearching ? deliberationRepository.firstIndex(where: { $0.nomenclature == filteredDeliberations[index].nomenclature }) ?? index : index
+        // New logic: Manual search for matching index
+        var actualIndex = index
+
+        if isSearching {
+            let targetId = filteredDeliberations[index].nomenclature
+
+            // Manual loop to find index
+            var foundIndex: Int? = nil
+            for (idx, item) in deliberationRepository.enumerated() {
+                if item.nomenclature == targetId {
+                    foundIndex = idx
+                    break
+                }
+            }
+
+            actualIndex = foundIndex ?? index
+        }
+
         let dialog = EphemeralDialogPresenter()
         dialog.configurePresentationContent(
             title: "Delete Decision",
@@ -263,17 +357,35 @@ extension DeliberationCatalogViewController: UITableViewDelegate, UITableViewDat
 
 // MARK: - UISearchBarDelegate
 extension DeliberationCatalogViewController: UISearchBarDelegate {
+    // Refactored: Different search filtering implementation
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        if searchText.isEmpty {
+        // New logic: Manual text length check
+        let textLength = searchText.count
+        let isEmptyText = (textLength == 0)
+
+        if isEmptyText {
             isSearching = false
             filteredDeliberations = []
         } else {
             hoamei?.jiancSieusi(searchText)
 
             isSearching = true
-            filteredDeliberations = deliberationRepository.filter { deliberation in
-                deliberation.appellation.localizedCaseInsensitiveContains(searchText)
+
+            // New logic: Manual loop filtering instead of filter function
+            var matchedItems: [Deliberation] = []
+
+            for deliberation in deliberationRepository {
+                let titleText = deliberation.appellation
+                let lowercaseTitle = titleText.lowercased()
+                let lowercaseSearch = searchText.lowercased()
+
+                // Manual contains check
+                if lowercaseTitle.range(of: lowercaseSearch) != nil {
+                    matchedItems.append(deliberation)
+                }
             }
+
+            filteredDeliberations = matchedItems
         }
         tableView.reloadData()
         updateEmptyState()

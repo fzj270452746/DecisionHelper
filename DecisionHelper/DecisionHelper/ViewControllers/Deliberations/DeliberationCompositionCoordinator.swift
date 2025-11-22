@@ -62,12 +62,42 @@ class DeliberationCompositionCoordinator: UIViewController {
         return button
     }()
 
+    // Refactored: Different initialization flow and method call sequence
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        // New logic: Setup in different order with intermediate steps
+        performInitialSetup()
+    }
+
+    private func performInitialSetup() {
+        // Step 1: Configure visual appearance first
+        setupVisualConfiguration()
+
+        // Step 2: Setup navigation components
+        setupNavigationComponents()
+
+        // Step 3: Build UI hierarchy
+        buildUserInterfaceHierarchy()
+
+        // Step 4: Display initial content
+        displayInitialPhaseContent()
+    }
+
+    private func setupVisualConfiguration() {
         configureAppearance()
+    }
+
+    private func setupNavigationComponents() {
         configureNavigationBar()
+    }
+
+    private func buildUserInterfaceHierarchy() {
         configurePhaseIndicator()
         configureLayout()
+    }
+
+    private func displayInitialPhaseContent() {
         manifestPhase(currentPhase)
     }
 
@@ -144,40 +174,100 @@ class DeliberationCompositionCoordinator: UIViewController {
         proceedButton.addTarget(self, action: #selector(proceedToNextPhase), for: .touchUpInside)
     }
 
+    // Refactored: Different phase manifestation flow with separate concerns
     private func manifestPhase(_ phase: CompositionPhase) {
-        containerView.subviews.forEach { $0.removeFromSuperview() }
+        // Step 1: Prepare container
+        prepareContainerForNewPhase()
 
-        let phaseViewController: UIViewController
+        // Step 2: Create phase controller
+        let phaseViewController = createPhaseViewController(for: phase)
 
-        switch phase {
+        // Step 3: Install controller into view hierarchy
+        installChildViewController(phaseViewController)
+
+        // Step 4: Update UI indicators
+        refreshUserInterfaceIndicators()
+    }
+
+    private func prepareContainerForNewPhase() {
+        // New logic: Manual removal of subviews
+        let subviewsToRemove = containerView.subviews
+        for subview in subviewsToRemove {
+            subview.removeFromSuperview()
+        }
+    }
+
+    private func createPhaseViewController(for phase: CompositionPhase) -> UIViewController {
+        // New logic: Separate method for controller creation
+        var controller: UIViewController
+
+        let phaseType = phase
+        switch phaseType {
         case .fundamentalConfiguration:
-            phaseViewController = FundamentalConfigurationPhaseController(existingTitle: deliberationTitle) { [weak self] title in
-                self?.deliberationTitle = title
-            }
+            controller = buildFundamentalConfigurationController()
         case .contenderSpecification:
-            phaseViewController = ContenderSpecificationPhaseController(existingContenders: contenders) { [weak self] updatedContenders in
-                self?.contenders = updatedContenders
-            }
+            controller = buildContenderSpecificationController()
         case .criterionDesignation:
-            phaseViewController = CriterionDesignationPhaseController(existingCriteria: criteria) { [weak self] updatedCriteria in
-                self?.criteria = updatedCriteria
-            }
+            controller = buildCriterionDesignationController()
         case .preponderanceAllocation:
-            phaseViewController = PreponderanceAllocationPhaseController(criteria: criteria) { [weak self] updatedCriteria in
-                self?.criteria = updatedCriteria
-            }
+            controller = buildPreponderanceAllocationController()
         case .appraisementMatrix:
-            phaseViewController = AppraisementMatrixPhaseController(contenders: contenders, criteria: criteria) { [weak self] updatedContenders in
-                self?.contenders = updatedContenders
-            }
+            controller = buildAppraisementMatrixController()
         }
 
-        addChild(phaseViewController)
-        containerView.addSubview(phaseViewController.view)
-        phaseViewController.view.frame = containerView.bounds
-        phaseViewController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        phaseViewController.didMove(toParent: self)
+        return controller
+    }
 
+    private func buildFundamentalConfigurationController() -> UIViewController {
+        let controller = FundamentalConfigurationPhaseController(existingTitle: deliberationTitle) { [weak self] title in
+            self?.deliberationTitle = title
+        }
+        return controller
+    }
+
+    private func buildContenderSpecificationController() -> UIViewController {
+        let controller = ContenderSpecificationPhaseController(existingContenders: contenders) { [weak self] updatedContenders in
+            self?.contenders = updatedContenders
+        }
+        return controller
+    }
+
+    private func buildCriterionDesignationController() -> UIViewController {
+        let controller = CriterionDesignationPhaseController(existingCriteria: criteria) { [weak self] updatedCriteria in
+            self?.criteria = updatedCriteria
+        }
+        return controller
+    }
+
+    private func buildPreponderanceAllocationController() -> UIViewController {
+        let controller = PreponderanceAllocationPhaseController(criteria: criteria) { [weak self] updatedCriteria in
+            self?.criteria = updatedCriteria
+        }
+        return controller
+    }
+
+    private func buildAppraisementMatrixController() -> UIViewController {
+        let controller = AppraisementMatrixPhaseController(contenders: contenders, criteria: criteria) { [weak self] updatedContenders in
+            self?.contenders = updatedContenders
+        }
+        return controller
+    }
+
+    private func installChildViewController(_ childController: UIViewController) {
+        // New logic: Step-by-step installation
+        addChild(childController)
+
+        let childView = childController.view!
+        containerView.addSubview(childView)
+
+        childView.frame = containerView.bounds
+        childView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+        childController.didMove(toParent: self)
+    }
+
+    private func refreshUserInterfaceIndicators() {
+        // New logic: Separate method for UI updates
         updatePhaseIndicator()
         updateProceedButton()
     }
@@ -202,23 +292,95 @@ class DeliberationCompositionCoordinator: UIViewController {
         }
     }
 
+    // Refactored: Different progression logic with validation and state management
     @objc private func proceedToNextPhase() {
-        if currentPhase == .appraisementMatrix {
-            completeComposition()
-        } else if let nextPhase = CompositionPhase(rawValue: currentPhase.rawValue + 1) {
-            currentPhase = nextPhase
-            manifestPhase(currentPhase)
+        // New logic: Check completion status first
+        let isOnFinalPhase = checkIfOnFinalPhase()
+
+        if isOnFinalPhase {
+            handleCompositionCompletion()
+        } else {
+            advanceToNextPhase()
         }
     }
 
+    private func checkIfOnFinalPhase() -> Bool {
+        let finalPhase = CompositionPhase.appraisementMatrix
+        let currentIsLast = (currentPhase == finalPhase)
+        return currentIsLast
+    }
+
+    private func handleCompositionCompletion() {
+        completeComposition()
+    }
+
+    private func advanceToNextPhase() {
+        // New logic: Calculate next phase manually
+        let currentRawValue = currentPhase.rawValue
+        let nextRawValue = currentRawValue + 1
+
+        // Try to create next phase
+        if let calculatedNextPhase = CompositionPhase(rawValue: nextRawValue) {
+            transitionToPhase(calculatedNextPhase)
+        }
+    }
+
+    private func transitionToPhase(_ targetPhase: CompositionPhase) {
+        // New logic: Update state then render
+        currentPhase = targetPhase
+        renderCurrentPhase()
+    }
+
+    private func renderCurrentPhase() {
+        manifestPhase(currentPhase)
+    }
+
     private func completeComposition() {
-        let deliberation = Deliberation(
-            appellation: deliberationTitle.isEmpty ? "Untitled Decision" : deliberationTitle,
+        // New logic: Build deliberation in steps
+        let finalTitle = determineFinalTitle()
+        let finalContenders = contenders
+        let finalCriteria = criteria
+
+        let completedDeliberation = constructDeliberation(
+            title: finalTitle,
+            contenders: finalContenders,
+            criteria: finalCriteria
+        )
+
+        notifyCompletionAndDismiss(completedDeliberation)
+    }
+
+    private func determineFinalTitle() -> String {
+        let enteredTitle = deliberationTitle
+        let titleIsEmpty = enteredTitle.isEmpty
+
+        if titleIsEmpty {
+            return "Untitled Decision"
+        } else {
+            return enteredTitle
+        }
+    }
+
+    private func constructDeliberation(title: String, contenders: [Contender], criteria: [Criterion]) -> Deliberation {
+        let newDeliberation = Deliberation(
+            appellation: title,
             contenders: contenders,
             criteria: criteria
         )
+        return newDeliberation
+    }
 
-        onCompletionClosure?(deliberation)
+    private func notifyCompletionAndDismiss(_ deliberation: Deliberation) {
+        // New logic: Notify callback first
+        if let completionHandler = onCompletionClosure {
+            completionHandler(deliberation)
+        }
+
+        // Then dismiss
+        performDismissal()
+    }
+
+    private func performDismissal() {
         dismiss(animated: true)
     }
 

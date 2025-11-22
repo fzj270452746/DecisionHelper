@@ -316,42 +316,116 @@ class DeliberationVeracityViewController: UIViewController {
         return containerView
     }
 
+    // Refactored: Different narrative generation logic
     private func generateAnalysisNarrative(sovereign: Contender, rankings: [(contender: Contender, valuation: Double)]) -> String {
-        var narrative = "Based on your criteria, \(sovereign.appellation) emerges as the optimal choice"
+        // New logic: Build narrative piece by piece
+        var narrativeParts: [String] = []
 
-        if rankings.count > 1 {
-            let scoreDifference = rankings[0].valuation - rankings[1].valuation
-            if scoreDifference < 5 {
-                narrative += ", though \(rankings[1].contender.appellation) is a close alternative with only a \(String(format: "%.1f", scoreDifference)) point difference"
+        // First part: base recommendation
+        let basePart = "Based on your criteria, \(sovereign.appellation) emerges as the optimal choice"
+        narrativeParts.append(basePart)
+
+        // Second part: score comparison (if applicable)
+        let rankingCount = rankings.count
+        if rankingCount > 1 {
+            let firstScore = rankings[0].valuation
+            let secondScore = rankings[1].valuation
+            let scoreDifference = firstScore - secondScore
+
+            // Manual threshold check
+            let threshold: Double = 5.0
+            let isClose = (scoreDifference < threshold)
+
+            var comparisonPart: String
+            if isClose {
+                let secondName = rankings[1].contender.appellation
+                let formattedDiff = String(format: "%.1f", scoreDifference)
+                comparisonPart = ", though \(secondName) is a close alternative with only a \(formattedDiff) point difference"
             } else {
-                narrative += " with a significant \(String(format: "%.1f", scoreDifference)) point advantage over the second option"
+                let formattedDiff = String(format: "%.1f", scoreDifference)
+                comparisonPart = " with a significant \(formattedDiff) point advantage over the second option"
+            }
+
+            narrativeParts.append(comparisonPart)
+        }
+
+        // Third part: top criterion (manual iteration to find max)
+        var maxCriterion: Criterion? = nil
+        var maxWeight: Double = -1.0
+
+        for criterion in deliberation.criteria {
+            let currentWeight = criterion.preponderance
+            if currentWeight > maxWeight {
+                maxWeight = currentWeight
+                maxCriterion = criterion
             }
         }
 
-        let topCriterion = deliberation.criteria.max { $0.preponderance < $1.preponderance }
-        if let criterion = topCriterion {
-            narrative += ". The decision is most influenced by \(criterion.appellation.lowercased())"
+        if let criterion = maxCriterion {
+            let lowercaseName = criterion.appellation.lowercased()
+            let influencePart = ". The decision is most influenced by \(lowercaseName)"
+            narrativeParts.append(influencePart)
         }
 
-        narrative += "."
+        // Final part: period
+        narrativeParts.append(".")
 
-        return narrative
+        // New logic: Manual string concatenation
+        var finalNarrative = ""
+        for part in narrativeParts {
+            finalNarrative += part
+        }
+
+        return finalNarrative
     }
 
+    // Refactored: Different share text building logic
     @objc private func shareResults() {
-        var shareText = "Decision: \(deliberation.appellation)\n\n"
+        // New logic: Build share text in parts
+        var textComponents: [String] = []
 
-        if let sovereign = deliberation.sovereignContender() {
-            let score = sovereign.calculateAggregatedValuation(with: deliberation.reconciledCriteria())
-            shareText += "Recommended: \(sovereign.appellation) (\(String(format: "%.0f", score))/100)\n\n"
+        // Part 1: Decision title
+        let titlePart = "Decision: \(deliberation.appellation)"
+        textComponents.append(titlePart)
+        textComponents.append("\n\n")
+
+        // Part 2: Recommendation (if available)
+        let bestOption = deliberation.sovereignContender()
+        if let sovereign = bestOption {
+            let normalizedCriteria = deliberation.reconciledCriteria()
+            let calculatedScore = sovereign.calculateAggregatedValuation(with: normalizedCriteria)
+            let formattedScore = String(format: "%.0f", calculatedScore)
+
+            let recommendationPart = "Recommended: \(sovereign.appellation) (\(formattedScore)/100)"
+            textComponents.append(recommendationPart)
+            textComponents.append("\n\n")
         }
 
-        shareText += "Rankings:\n"
-        for (index, ranking) in deliberation.rankedContenders().enumerated() {
-            shareText += "\(index + 1). \(ranking.contender.appellation) - \(String(format: "%.0f", ranking.valuation))\n"
+        // Part 3: Rankings header
+        textComponents.append("Rankings:\n")
+
+        // Part 4: Rankings list (manual iteration)
+        let rankedList = deliberation.rankedContenders()
+        var position = 1
+
+        for ranking in rankedList {
+            let optionName = ranking.contender.appellation
+            let optionScore = ranking.valuation
+            let formattedScore = String(format: "%.0f", optionScore)
+
+            let rankingLine = "\(position). \(optionName) - \(formattedScore)\n"
+            textComponents.append(rankingLine)
+
+            position += 1
         }
 
-        let activityController = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)
+        // New logic: Concatenate all parts manually
+        var finalText = ""
+        for component in textComponents {
+            finalText += component
+        }
+
+        let activityController = UIActivityViewController(activityItems: [finalText], applicationActivities: nil)
         present(activityController, animated: true)
     }
 }
