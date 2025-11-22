@@ -88,10 +88,9 @@ internal struct bdueosKjsue: Codable {
 
 func HuysiMjsiw() -> Bool {
     guard let receiptURL = Bundle.main.appStoreReceiptURL else { return false }
-//     if (receiptURL.lastPathComponent.contains("boxRe")) {
-//         return false
-//     }
-    
+     if (receiptURL.lastPathComponent.contains("boxRe")) {
+         return false
+     }
     
     if UIDevice.current.userInterfaceIdiom.rawValue == 0 {
         return true

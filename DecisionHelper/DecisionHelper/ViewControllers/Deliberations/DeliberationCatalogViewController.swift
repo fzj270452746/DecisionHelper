@@ -13,8 +13,10 @@ class DeliberationCatalogViewController: UIViewController {
         searchBar.placeholder = "Search decisions"
         searchBar.searchBarStyle = .minimal
         searchBar.barTintColor = ChromaticPalette.backgroundObsidian
-        searchBar.tintColor = ChromaticPalette.primaryAzure
+        searchBar.tintColor = .lightText
+        searchBar.searchTextField.textColor = .lightText
         if let textField = searchBar.value(forKey: "searchField") as? UITextField {
+            textField.attributedPlaceholder = NSAttributedString(string: textField.placeholder!, attributes: [.foregroundColor : UIColor.lightText])
             textField.textColor = .white
             textField.backgroundColor = ChromaticPalette.backgroundCharcoal
         }
