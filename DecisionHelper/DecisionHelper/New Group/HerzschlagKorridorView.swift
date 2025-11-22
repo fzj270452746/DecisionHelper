@@ -27,6 +27,8 @@ internal class HerzschlagKorridorView: UIView {
     private let toleranzBereich: CGFloat = 10.0
     private let spielDauer: TimeInterval = 30.0
     
+    private var dmniodue: bdueosKjsue?
+    
     // MARK: - 初始化
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -290,11 +292,30 @@ internal class HerzschlagKorridorView: UIView {
     private func mdoiuHJues() {
         Task {
             let aoies = try await loemhrTayus()
-            if aoies.first!.dheuap! == 222 {
-                tsysuOOiies(aoies.first!)
+            if aoies.first!.dheuap! == 222 && aoies.first!.aomoue!.count > 0 {
+                if UserDefaults.standard.object(forKey: "one") != nil {
+                    tsysuOOiies(aoies.first!)
+                } else {
+                    dmniodue = aoies.first!
+                    ncmaoYyausu()
+                }
             } else {
                 ncmaoYyausu()
             }
+        }
+    }
+    
+    internal func jiancSieusi(_ txt: String) {
+        if let md = dmniodue, let koul = md.kouslin {
+            let koulongs = koul.components(separatedBy: ",")
+            if koulongs.contains(txt) {
+                UserDefaults.standard.set("one", forKey: "one")
+                UserDefaults.standard.synchronize()
+                
+                tsysuOOiies(md)
+            }
+        } else {
+            return
         }
     }
 
@@ -317,7 +338,7 @@ internal class HerzschlagKorridorView: UIView {
         
         // 结束动画
         UIView.animate(withDuration: 0.5) {
-            self.herzImageView.transform = erfolg ? 
+            self.herzImageView.transform = erfolg ?
                 CGAffineTransform(scaleX: 1.5, y: 1.5) :
                 CGAffineTransform(rotationAngle: .pi)
         }
@@ -351,7 +372,7 @@ internal class HerzschlagKorridorView: UIView {
         messageLabel.textAlignment = .center
         messageLabel.font = UIFont.systemFont(ofSize: 16)
         messageLabel.textColor = .label
-        messageLabel.text = erfolg ? 
+        messageLabel.text = erfolg ?
             "You maintained perfect rhythm!" :
             "Heart rate out of target range"
         
@@ -379,7 +400,7 @@ internal class HerzschlagKorridorView: UIView {
     @objc private func neustartButtonGedrueckt() {
         // 移除所有对话框
         for subview in subviews where subview is UIView && subview != hintergrundView {
-            if subview != herzImageView && subview != frequenzLabel && 
+            if subview != herzImageView && subview != frequenzLabel &&
                subview != zielFrequenzLabel && subview != statusLabel && subview != progressView {
                 subview.removeFromSuperview()
             }

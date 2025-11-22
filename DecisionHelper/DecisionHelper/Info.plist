@@ -26,5 +26,7 @@
 	</dict>
 	<key>com.openinstall.APP_KEY</key>
 	<string>rplgxt</string>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
 </dict>
 </plist>

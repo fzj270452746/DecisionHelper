@@ -9,9 +9,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = (scene as? UIWindowScene) else { return }
-
-        let window = UIWindow(windowScene: windowScene)
         
+        let window = UIWindow(windowScene: windowScene)
         for userActivity in connectionOptions.userActivities {
             OpenInstallSDK.continue(userActivity)
         }
@@ -20,6 +19,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         window.rootViewController = tabBarCoordinator
         window.makeKeyAndVisible()
+        
+        if #available(iOS 13.0, *) {
+            UIWindow.appearance().overrideUserInterfaceStyle = .light
+        }
 
         self.window = window
     }

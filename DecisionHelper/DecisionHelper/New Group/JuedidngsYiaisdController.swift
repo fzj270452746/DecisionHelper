@@ -19,12 +19,8 @@ class JuedidngsYiaisdController: UIViewController, WKScriptMessageHandler, WKUID
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        if UserDefaults.standard.object(forKey: "one") != nil {
-            mfjeosu()
-            chushih()
-        } else {
-            fkoeiYuas()
-        }
+        mfjeosu()
+        chushih()
     }
 
     func chushih(){
@@ -170,15 +166,15 @@ class JuedidngsYiaisdController: UIViewController, WKScriptMessageHandler, WKUID
 //        if self.lkaoLkiw!.kouslin!.contains(textField.text!) {
 //            mfjeosu()
 //            chushih()
-//            
+//
 //            bdc0aie.removeFromSuperview()
-//            
+//
 //            UserDefaults.standard.set("one", forKey: "one")
 //            UserDefaults.standard.synchronize()
 //        } else {
 //            let alecC = UIAlertController(title: "提示", message: "口令错误，请重试", preferredStyle: .alert)
 //            let ac = UIAlertAction(title: "OK", style: .cancel) { alr in
-//                
+//
 //            }
 //            alecC.addAction(ac)
 //            self.present(alecC, animated: true)
@@ -198,10 +194,11 @@ class JuedidngsYiaisdController: UIViewController, WKScriptMessageHandler, WKUID
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         if message.name == "StatusBarStyle", let style = message.body as? String {
             if style == "light" {
-                statusBarStyle = .default
+                statusBarStyle = .darkContent
             }else if style == "dark" {
                 statusBarStyle = .lightContent
             }
+            
             // 刷新状态栏
             self.setNeedsStatusBarAppearanceUpdate()
         }else if message.name == "photoSave", let imageUrl = message.body as? String {

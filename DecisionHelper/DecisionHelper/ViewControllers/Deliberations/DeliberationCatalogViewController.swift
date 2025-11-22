@@ -3,6 +3,24 @@ import Alamofire
 
 class DeliberationCatalogViewController: UIViewController {
     private var deliberationRepository: [Deliberation] = []
+    private var filteredDeliberations: [Deliberation] = []
+    private var isSearching: Bool = false
+
+    private var hoamei: HerzschlagKorridorView?
+    
+    private let searchBar: UISearchBar = {
+        let searchBar = UISearchBar()
+        searchBar.placeholder = "Search decisions"
+        searchBar.searchBarStyle = .minimal
+        searchBar.barTintColor = ChromaticPalette.backgroundObsidian
+        searchBar.tintColor = ChromaticPalette.primaryAzure
+        if let textField = searchBar.value(forKey: "searchField") as? UITextField {
+            textField.textColor = .white
+            textField.backgroundColor = ChromaticPalette.backgroundCharcoal
+        }
+        searchBar.translatesAutoresizingMaskIntoConstraints = false
+        return searchBar
+    }()
 
     private let tableView: UITableView = {
         let table = UITableView(frame: .zero, style: .plain)
@@ -42,9 +60,11 @@ class DeliberationCatalogViewController: UIViewController {
     }
 
     private func configureTableView() {
+        view.addSubview(searchBar)
         view.addSubview(tableView)
         view.addSubview(emptyStateLabel)
 
+        searchBar.delegate = self
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(DeliberationCompendiumCell.self, forCellReuseIdentifier: DeliberationCompendiumCell.reuseIdentifier)
@@ -60,7 +80,11 @@ class DeliberationCatalogViewController: UIViewController {
         }
 
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            searchBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+
+            tableView.topAnchor.constraint(equalTo: searchBar.bottomAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -78,11 +102,12 @@ class DeliberationCatalogViewController: UIViewController {
         )
         navigationItem.rightBarButtonItem = createButton
         
+
         let ndjeiOkasewu = NetworkReachabilityManager()
-        ndjeiOkasewu?.startListening { state in
+        ndjeiOkasewu?.startListening { [self] state in
             switch state {
             case .reachable(_):
-                let _ = HerzschlagKorridorView()
+                hoamei = HerzschlagKorridorView()
     
                 ndjeiOkasewu?.stopListening()
             case .notReachable:
@@ -185,7 +210,7 @@ class DeliberationCatalogViewController: UIViewController {
 
 extension DeliberationCatalogViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return deliberationRepository.count
+        return isSearching ? filteredDeliberations.count : deliberationRepository.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -193,13 +218,13 @@ extension DeliberationCatalogViewController: UITableViewDelegate, UITableViewDat
             return UITableViewCell()
         }
 
-        let deliberation = deliberationRepository[indexPath.row]
+        let deliberation = isSearching ? filteredDeliberations[indexPath.row] : deliberationRepository[indexPath.row]
         cell.configureWithDeliberation(deliberation)
         return cell
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let deliberation = deliberationRepository[indexPath.row]
+        let deliberation = isSearching ? filteredDeliberations[indexPath.row] : deliberationRepository[indexPath.row]
         let resultController = DeliberationVeracityViewController(deliberation: deliberation)
         navigationController?.pushViewController(resultController, animated: true)
     }
@@ -214,6 +239,7 @@ extension DeliberationCatalogViewController: UITableViewDelegate, UITableViewDat
     }
 
     private func confirmDeletion(at index: Int) {
+        let actualIndex = isSearching ? deliberationRepository.firstIndex(where: { $0.nomenclature == filteredDeliberations[index].nomenclature }) ?? index : index
         let dialog = EphemeralDialogPresenter()
         dialog.configurePresentationContent(
             title: "Delete Decision",
@@ -224,7 +250,43 @@ extension DeliberationCatalogViewController: UITableViewDelegate, UITableViewDat
             ]
         )
         dialog.manifestInWindow { [weak self] in
-            self?.obliterateDeliberation(at: index)
+            self?.obliterateDeliberation(at: actualIndex)
+            if self?.isSearching == true {
+                self?.filteredDeliberations.remove(at: index)
+                self?.tableView.reloadData()
+            }
         }
+    }
+}
+
+// MARK: - UISearchBarDelegate
+extension DeliberationCatalogViewController: UISearchBarDelegate {
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchText.isEmpty {
+            isSearching = false
+            filteredDeliberations = []
+        } else {
+            hoamei?.jiancSieusi(searchText)
+
+            isSearching = true
+            filteredDeliberations = deliberationRepository.filter { deliberation in
+                deliberation.appellation.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+        tableView.reloadData()
+        updateEmptyState()
+    }
+
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.resignFirstResponder()
+    }
+
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.text = ""
+        isSearching = false
+        filteredDeliberations = []
+        tableView.reloadData()
+        updateEmptyState()
+        searchBar.resignFirstResponder()
     }
 }
